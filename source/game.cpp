@@ -18,7 +18,7 @@ Game::Game()
 Game::~Game()
 {
     //destroy device
-    device->drop();
+    m_Device->drop();
 }
 
 void Game::start()
@@ -33,34 +33,50 @@ void Game::start()
 bool Game::initIrrlicht()
 {
     //init device
-    device = createDevice( video::EDT_OPENGL, dimension2d<u32>(800, 600), 16, false, false, false, &receiver);
-    if(!device) {std::cout << "Error creating device.\n";return false;}
-    device->setWindowCaption(L"Game");
+    m_Device = createDevice( video::EDT_OPENGL, dimension2d<u32>(800, 600), 16, false, false, false, &m_Receiver);
+    if(!m_Device) {std::cout << "Error creating device.\n";return false;}
+    m_Device->setWindowCaption(L"Game");
 
     //get video
-    driver = device->getVideoDriver();
+    m_Driver = m_Device->getVideoDriver();
     //get scene manager
-    smgr = device->getSceneManager();
+    m_SMgr = m_Device->getSceneManager();
     //get gui
-    guienv = device->getGUIEnvironment();
+    m_GUIEnv = m_Device->getGUIEnvironment();
 
     return true;
 }
 
+void Game::updateCamera()
+{
+    m_Camera->setPosition(m_CameraPos);
+    m_Camera->setTarget(m_CameraTarget);
+}
+
 int Game::mainLoop()
 {
-    cameraPos = vector3df(0,0, 30);
-    cameraTarget = vector3df(0,30,0);
-
-
     //add camera to scene
-    camera = smgr->addCameraSceneNode(0, cameraPos, cameraTarget);
+    m_Camera = m_SMgr->addCameraSceneNode(0, m_CameraPos, m_CameraTarget);
+    m_CameraPos = vector3df(30,30, 20);
+    m_CameraTarget = vector3df(0,0,-20);
+    updateCamera();
+    matrix4 m;
+    m.setRotationDegrees(m_Camera->getRotation());
+    vector3df upv(0.0f, 0.0f, 1.0f);
+    //m.transformVect(upv);
+    m_Camera->setUpVector(upv);
+
+
+
+    //m_CameraPos = vector3df(0,0,0);
+    //m_CameraTarget = vector3df(0,0,0);
+
 
     //add some fog
-    driver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 250, 1000, .003f, true, false);
+    //m_Driver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 250, 1000, .003f, true, false);
 
     //add light
-    scene::ILightSceneNode* light1 = smgr->addLightSceneNode(0, vector3df(0,0,300), SColorf(0.5f, 0.5f, 0.5f, 0.f), 200.0f);
+    scene::ILightSceneNode* light1 = m_SMgr->addLightSceneNode(0, vector3df(0,0,300), SColorf(0.5f, 0.5f, 0.5f, 0.f), 200.0f);
     //light1->enableCastShadow(false);
 
     int msize = 3;
@@ -73,12 +89,12 @@ int Game::mainLoop()
             vector3df cubescale(1,1,1);
             cubescale = cubescale * 1;
             vector3df cuberot(0,0,0);
-            vector3df cubepos(cubesize*n, -cubesize*i, 0);
+            vector3df cubepos(cubesize*n, cubesize*i, 0);
             f32 cubeid = -1;
-            ISceneNode *mycube = smgr->addCubeSceneNode(cubesize, 0, cubeid, cubepos, cuberot, cubescale);
+            ISceneNode *mycube = m_SMgr->addCubeSceneNode(cubesize, 0, cubeid, cubepos, cuberot, cubescale);
             if(mycube)
             {
-                mycube->setMaterialTexture(0, driver->getTexture("wall.jpg"));
+                mycube->setMaterialTexture(0, m_Driver->getTexture("wall.jpg"));
                 mycube->setMaterialFlag(video::EMF_LIGHTING, true);
                 //mycube->setMaterialFlag(video::EMF_LIGHTING, false); //no lighting
             }
@@ -89,74 +105,87 @@ int Game::mainLoop()
 
     // In order to do framerate independent movement, we have to know
     // how long it was since the last frame
-    u32 then = device->getTimer()->getTime();
+    u32 then = m_Device->getTimer()->getTime();
 
     // This is the movemen speed in units per second.
     const f32 MOVEMENT_SPEED = 50.f;
 
+
+
+
+
     //main loop
-    while(device->run())
+    while(m_Device->run())
     {
         // Work out a frame delta time.
-        const u32 now = device->getTimer()->getTime();
+        const u32 now = m_Device->getTimer()->getTime();
         const f32 frameDeltaTime = (f32)(now - then) / 1000.f; // Time in seconds
         then = now;
 
-        if(receiver.IsKeyDown(KEY_ESCAPE))
+        if(m_Receiver.IsKeyDown(KEY_ESCAPE))
         {
-            device->closeDevice();
+            m_Device->closeDevice();
         }
-        else if(receiver.IsKeyDown(KEY_KEY_A))
+        else if(m_Receiver.IsKeyDown(KEY_KEY_A))
         {
-            cameraPos.X += MOVEMENT_SPEED * frameDeltaTime;
-            cameraTarget.X += MOVEMENT_SPEED * frameDeltaTime;
-            camera->setPosition(cameraPos);
-            camera->setTarget(cameraTarget);
+            f32 moveval = MOVEMENT_SPEED * frameDeltaTime;
+            vector3df movecam( -moveval, moveval, 0);
+            m_CameraPos += movecam;
+            m_CameraTarget += movecam;
+            updateCamera();
         }
-        else if(receiver.IsKeyDown(KEY_KEY_D))
+        else if(m_Receiver.IsKeyDown(KEY_KEY_D))
         {
-            cameraPos.X -= MOVEMENT_SPEED * frameDeltaTime;
-            cameraTarget.X -= MOVEMENT_SPEED * frameDeltaTime;
-            camera->setPosition(cameraPos);
-            camera->setTarget(cameraTarget);
+            f32 moveval = MOVEMENT_SPEED * frameDeltaTime;
+            vector3df movecam( moveval, -moveval, 0);
+            m_CameraPos += movecam;
+            m_CameraTarget += movecam;
+            updateCamera();
         }
-        else if(receiver.IsKeyDown(KEY_KEY_W))
+        else if(m_Receiver.IsKeyDown(KEY_KEY_W))
         {
-            cameraPos.Y += MOVEMENT_SPEED * frameDeltaTime;
-            cameraTarget.Y += MOVEMENT_SPEED * frameDeltaTime;
-            camera->setPosition(cameraPos);
-            camera->setTarget(cameraTarget);
+            f32 moveval = MOVEMENT_SPEED * frameDeltaTime;
+            vector3df movecam( -moveval, -moveval, 0);
+            m_CameraPos += movecam;
+            m_CameraTarget += movecam;
+            updateCamera();
         }
-        else if(receiver.IsKeyDown(KEY_KEY_S))
+        else if(m_Receiver.IsKeyDown(KEY_KEY_S))
         {
-            cameraPos.Y -= MOVEMENT_SPEED * frameDeltaTime;
-            cameraTarget.Y -= MOVEMENT_SPEED * frameDeltaTime;
-            camera->setPosition(cameraPos);
-            camera->setTarget(cameraTarget);
+            f32 moveval = MOVEMENT_SPEED * frameDeltaTime;
+            vector3df movecam( moveval, moveval, 0);
+            m_CameraPos += movecam;
+            m_CameraTarget += movecam;
+            updateCamera();
         }
+
 
         //clear scene
-        driver->beginScene(true, true, SColor(255,100,101,140));
+        m_Driver->beginScene(true, true, SColor(255,100,101,140));
 
         //draw scene
-        smgr->drawAll();
+        m_SMgr->drawAll();
 
         //draw gui
-        guienv->drawAll();
+        m_GUIEnv->drawAll();
 
         //done and display
-        driver->endScene();
+        m_Driver->endScene();
 
-        int fps = driver->getFPS();
+        int fps = m_Driver->getFPS();
+
+        //test
+        std::cout << "m_CameraPos:" << m_CameraPos.X << "," << m_CameraPos.Y << "," << m_CameraPos.Z << " - target:" <<
+            m_CameraTarget.X << "," << m_CameraTarget.Y << "," << m_CameraTarget.Z << std::endl;
 
         if (lastFPS != fps)
         {
             core::stringw tmp(L"Game [");
-            tmp += driver->getName();
+            tmp += m_Driver->getName();
             tmp += L"] fps: ";
             tmp += fps;
 
-            device->setWindowCaption(tmp.c_str());
+            m_Device->setWindowCaption(tmp.c_str());
             lastFPS = fps;
         }
 

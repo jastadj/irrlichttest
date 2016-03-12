@@ -46,16 +46,17 @@ class Game
 private:
 
     //irrlicht renderer
-    IrrlichtDevice *device;
-    IVideoDriver* driver;
-    ISceneManager* smgr;
-    IGUIEnvironment* guienv;
-    MyEventReceiver receiver;
+    IrrlichtDevice *m_Device;
+    IVideoDriver *m_Driver;
+    ISceneManager *m_SMgr;
+    IGUIEnvironment *m_GUIEnv;
+    MyEventReceiver m_Receiver;
 
     //camera
-    ICameraSceneNode *camera;
-    vector3df cameraPos;
-    vector3df cameraTarget;
+    void updateCamera();
+    ICameraSceneNode *m_Camera;
+    vector3df m_CameraPos;
+    vector3df m_CameraTarget;
 
     //init
     bool initIrrlicht();
