@@ -32,12 +32,15 @@
 			<Add option="-std=c++0x" />
 			<Add option="-Wall" />
 			<Add directory="../../irrlicht-1.8.3/include" />
+			<Add directory="include" />
 		</Compiler>
 		<Linker>
 			<Add library="libIrrlicht.a" />
 			<Add directory="../../irrlicht-1.8.3/lib/Win32-gcc" />
 		</Linker>
-		<Unit filename="main.cpp" />
+		<Unit filename="include/game.hpp" />
+		<Unit filename="source/game.cpp" />
+		<Unit filename="source/main.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
